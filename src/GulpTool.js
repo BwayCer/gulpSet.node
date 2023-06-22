@@ -5,7 +5,8 @@ import {Readable, Writable, Transform} from 'stream';
 import gulp from 'gulp';
 // const multimatch = require('multimatch');
 
-import {fsMkdir, fsRm, gulpSymlink} from './utils.js';
+import {fsMkdir, fsRm} from './utils.js';
+import gulpSymlink from './plugin/destSymlink/destSymlink.js';
 
 
 /**
