@@ -4,25 +4,7 @@ import fsPromises from 'fs/promises';
 import path from 'path';
 import {Writable} from 'stream';
 
-
-async function fsMkdir(path) {
-  await fsPromises.mkdir(path, {recursive: true});
-}
-
-async function fsRm(path, option) {
-  if (fs.existsSync(path)) {
-    await fsPromises.rm(path, Object.assign({
-      recursive: false,
-      force: true,
-    }, option));
-  }
-}
-
-async function fsSymlink(target, path, type) {
-  await fsRm(path, {recursive: true});
-  await fsPromises.symlink(target, path, type);
-}
-
+import {fsMkdir, fsRm, fsSymlink} from './utils/fsQuick.js';
 
 
 /**
