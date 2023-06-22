@@ -1,10 +1,8 @@
 
 import fs from 'fs';
+import fsPromises from 'fs/promises';
 import path from 'path';
-import {Readable, Writable, Transform} from 'stream';
-
-
-const fsPromises = fs.promises;
+import {Writable} from 'stream';
 
 
 async function fsMkdir(path) {
@@ -12,67 +10,19 @@ async function fsMkdir(path) {
 }
 
 async function fsRm(path, option) {
-  try {
-    await fsPromises.access(path, fs.constants.F_OK);
+  if (fs.existsSync(path)) {
     await fsPromises.rm(path, Object.assign({
       recursive: false,
       force: true,
     }, option));
-  } catch (err) {
-    // 目錄不存在
   }
 }
 
 async function fsSymlink(target, path, type) {
-  try {
-    await fsPromises.access(path, fs.constants.F_OK);
-    await fsRm(path);
-  } catch (err) {}
+  await fsRm(path, {recursive: true});
   await fsPromises.symlink(target, path, type);
 }
 
-
-/**
- * 處裡群組包轉換器：
- * 可以在 `gulp.pipe()` 中丟入一組處裡包，因此提高模組化的便利性。
- *
- * @func groupTransform
- * @param {Function} handlePipeGroup
- * @return {stream.Transform}
- */
-function groupTransform(handlePipeGroup) {
-  let readable = new Readable({
-    read(size) {},
-    objectMode: true,
-  });
-  let currChunk = null;
-  let currCallback = null;
-  handlePipeGroup(readable)
-    .pipe(new Writable({
-      write(chunk, encoding, callback) {
-        let theCurrCallback = currCallback;
-        currChunk = null;
-        currCallback = null;
-        theCurrCallback(null, chunk);
-        callback(null);
-      },
-      objectMode: true,
-    }))
-  ;
-
-  return new Transform({
-    transform(chunk, encoding, callback) {
-      currChunk = chunk;
-      currCallback = callback;
-      readable.push(chunk, encoding);
-    },
-    flush(callback) {
-      readable.push(null);
-      callback(null);
-    },
-    objectMode: true,
-  });
-}
 
 
 /**
@@ -86,20 +36,51 @@ function groupTransform(handlePipeGroup) {
 // 1. gulp.symlink 會遇到 Error: premature close 問題
 // 2. 此方法不會為資料夾建立鏈結文件。
 function gulpSymlink(directory) {
+  async function createSymlink({cwd, relative, path:filePath}) {
+    let linkPath = path.join(cwd, directory, relative);
+    let linkDirPath = path.join(linkPath, '..');
+    let linkTarget = path.relative(linkDirPath, filePath);
+    await fsMkdir(linkDirPath);
+    await fsSymlink(linkTarget, linkPath);
+  }
+
+  let dirList = [];
+
   return new Writable({
     async write(chunk, encoding, callback) {
-      let srcFileStat = null;
-      try {
-        srcFileStat = await fsPromises.stat(chunk.path);
-      } catch (err) {}
-
-      if (srcFileStat !== null && !srcFileStat.isDirectory()) {
-        let distPath = path.join(chunk.cwd, directory);
-        let linkPath = path.join(distPath, chunk.relative);
-        let linkDirPath = path.join(linkPath, '..');
-        let linkTarget = path.relative(linkDirPath, chunk.path);
-        await fsMkdir(linkDirPath);
-        await fsSymlink(linkTarget, linkPath);
+      let srcFileStat = await fsPromises.stat(chunk.path);
+      if (srcFileStat.isDirectory()) {
+        dirList.push({
+          cwd: chunk.cwd,
+          relative: chunk.relative,
+          path: chunk.path
+        });
+      } else {
+        await createSymlink(chunk);
+      }
+      callback(null);
+    },
+    async final(callback) {
+      // NOTE:
+      // `gulp.src()` 只有在目錄鏈結文件的子層明確匹配時
+      // 才會如預期的查找其子目錄或文件。
+      // 如：
+      //   "./symlinkParent/symlinkDir/**" -> 會查找 symlinkDir 鏈結文件的子層
+      //   "./symlinkParent/**" -> 只會查找到 symlinkDir 鏈結文件為止
+      // 因此完整複製的邏輯為：
+      // 1. 先建立文件的鏈結文件
+      // 2. 檢查被過濾掉的目錄中是否有原目錄為鏈結文件且建立目的地的路徑不存在文件，
+      //    並對其目錄的鏈結文件
+      for (let idx = 0, len = dirList.length; idx < len; idx++) {
+        let item = dirList[idx];
+        let linkPath = path.join(item.cwd, directory, item.relative);
+        if (fs.existsSync(linkPath)) {
+          continue;
+        }
+        let srcFileLstat = await fsPromises.lstat(item.path);
+        if (srcFileLstat.isSymbolicLink()) {
+          await createSymlink(item);
+        }
       }
       callback(null);
     },
@@ -110,6 +91,6 @@ function gulpSymlink(directory) {
 
 export {
   fsMkdir, fsRm, fsSymlink,
-  groupTransform, gulpSymlink,
+  gulpSymlink,
 };
 

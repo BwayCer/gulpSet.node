@@ -1,13 +1,55 @@
 
 import path from 'path';
+import {Readable, Writable, Transform} from 'stream';
 
 import gulp from 'gulp';
 // const multimatch = require('multimatch');
 
-import {
-  fsMkdir, fsRm,
-  groupTransform, gulpSymlink,
-} from './utils.js';
+import {fsMkdir, fsRm, gulpSymlink} from './utils.js';
+
+
+/**
+ * 處裡群組包轉換器：
+ * 可以在 `gulp.pipe()` 中丟入一組處裡包，因此提高模組化的便利性。
+ *
+ * @func _mediumTransform
+ * @param {Function} handlePipeGroup
+ * @return {stream.Transform}
+ */
+// NOTE: 如果只用 `Transform` 則只會觸發最後一個 `pipe()`。
+function _mediumTransform(handlePipeGroup) {
+  let readable = new Readable({
+    // TODO: 從此處著手處理串流過載問題？
+    read(/* size */) {},
+    objectMode: true,
+  });
+  let currFlushCallback = null;
+  let transform = new Transform({
+    transform(chunk, encoding, callback) {
+      readable.push(chunk, encoding);
+      callback(null);
+    },
+    flush(callback) {
+      readable.push(null);
+      currFlushCallback = callback;
+    },
+    objectMode: true,
+  });
+  handlePipeGroup(readable)
+    .pipe(new Writable({
+      write(chunk, encoding, callback) {
+        transform.push(chunk);
+        callback(null);
+      },
+      final(callback) {
+        callback(null);
+        currFlushCallback(null);
+      },
+      objectMode: true,
+    }))
+  ;
+  return transform;
+}
 
 
 /**
@@ -26,7 +68,7 @@ import {
  */
 function GulpTool(conf) {
   this._isInit = false;
-  this.conf = typeof conf === 'array' ? {infos: conf} : conf;
+  this.conf = conf instanceof Array ? {infos: conf} : conf;
 }
 
 /**
@@ -43,7 +85,7 @@ GulpTool.prototype.init = function use(mode, conf = null) {
       cwd, srcPathPart, distPathPart, infos
     } = Object.assign({
       cwd: process.cwd(),
-      srcPathPart: '.',
+      srcPathPart: 'src',
       distPathPart: 'dist',
       infos: [],
     }, this.conf, conf);
@@ -122,7 +164,7 @@ GulpTool.prototype.getTaskCleanDist = function getTaskCleanDist() {
     await fsRm(distPath, {recursive: true});
     await fsMkdir(distPath);
   };
-  Reflect.defineProperty(fn, 'name', {value: `cleanDist`});
+  Reflect.defineProperty(fn, 'name', {value: 'cleanDist'});
   return fn;
 };
 
@@ -134,6 +176,21 @@ GulpTool.prototype._getNewConf = function getNewConf(addConf) {
     ...this.conf,
     ...addConf,
   };
+};
+
+function _handleGlob(prefix, glob) {
+  return glob.startsWith('!')
+    ? '!' + path.join(prefix, glob.substring(1))
+    : path.join(prefix, glob)
+  ;
+}
+
+GulpTool.prototype._getGlobs = function getGlobs(globs) {
+  let srcPathPart = this.conf.srcPathPart;
+  return typeof globs === 'string'
+    ? _handleGlob(srcPathPart, globs)
+    : globs.map(item => _handleGlob(srcPathPart, item))
+  ;
 };
 
 /**
@@ -150,10 +207,12 @@ GulpTool.prototype.getTask = function getTask(name, distPathPart) {
     let info = this.getByName(name);
     let newConf = this._getNewConf({info, distPathPart});
     let inputConf = {
+      cwd: this.conf.cwd,
       base: this.conf.basePath,
+      allowEmpty: true,
     };
-    return gulp.src(info.src, inputConf)
-      .pipe(groupTransform(readable => info.handle(readable, newConf)))
+    return gulp.src(this._getGlobs(info.src), inputConf)
+      .pipe(_mediumTransform(readable => info.handle(readable, newConf)))
       .pipe(gulp.dest(newConf.distPathPart))
     ;
   };
@@ -175,10 +234,12 @@ GulpTool.prototype.getSymlinkTask = function getSymlinkTask(name, distPathPart) 
     let info = this.getByName(name);
     let newConf = this._getNewConf({info, distPathPart});
     let inputConf = {
+      cwd: this.conf.cwd,
       base: this.conf.basePath,
+      allowEmpty: true,
     };
-    return gulp.src(info.src, inputConf)
-      .pipe(groupTransform(readable => info.handle(readable, newConf)))
+    return gulp.src(this._getGlobs(info.src), inputConf)
+      .pipe(_mediumTransform(readable => info.handle(readable, newConf)))
       .pipe(gulpSymlink(newConf.distPathPart))
     ;
   };
