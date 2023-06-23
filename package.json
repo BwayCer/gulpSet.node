@@ -3,6 +3,13 @@
   "version": "0.2.0",
   "description": "About Gulp utilities.",
   "type": "module",
+  "scripts": {
+    "test/mediumTransform": "node ./test/test_gulpTool.js mediumTransform",
+    "test/gulpTask": "node ./test/test_gulpTool.js gulpTask",
+    "test/gulpRun": "node ./test/test_gulpTool.js gulpRun",
+    "test/gulpRollup": "node ./test/test_gulpTool.js gulpRollup",
+    "test/gulpDestSymlink": "node ./test/test_gulpTool.js gulpDestSymlink"
+  },
   "exports": {
     ".": "./src/utils.js",
     "./utils/": "./src/utils/",

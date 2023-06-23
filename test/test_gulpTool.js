@@ -1,0 +1,194 @@
+
+import path from 'path';
+import {Transform} from 'stream';
+
+import minimist from 'minimist';
+import gulp from 'gulp';
+import {babel as rollupBabel} from '@rollup/plugin-babel';
+import rollupCommonjs from '@rollup/plugin-commonjs';
+
+import gulpRun from '../src/gulpRun.js';
+import {changeGlobs, mediumTransform, gulpTask} from '../src/utils.js';
+import gulpDestSymlink from '../src/plugin/destSymlink/destSymlink.js';
+import gulpRollup from '../src/plugin/rollup/rollup.js';
+
+
+const _filename = import.meta.url.substring(7);
+
+
+let cmdArgv = minimist(process.argv.slice(2));
+
+if (cmdArgv.h === true || cmdArgv.help === true) {
+  console.log(
+    `Usage: ${path.basename(_filename)} [OPTION]`
+    + '       <taskName ()>'
+    + '\n\nOptions:'
+    + '\n  -s, --src <path>   origin directory. (default: "./src")'
+    + '\n  -t, --to <path>    dist directory. (default: "./dist")'
+    + '\n  -h, --help        display this help',
+  );
+  process.exit();
+}
+cmdArgv.src = cmdArgv.src ?? cmdArgv.s ?? 'src';
+cmdArgv.to = cmdArgv.to ?? cmdArgv.t ?? 'dist';
+
+
+switch (cmdArgv._[0]) {
+  case 'mediumTransform':
+    testUtilsMediumTransform();
+    break;
+  case 'gulpTask':
+    testGulpTask();
+    break;
+  case 'gulpRun':
+    testGulpRun();
+    break;
+  case 'gulpRollup':
+    testGulpRollup();
+    break;
+  case 'gulpDestSymlink':
+    testGulpDestSymlink();
+    break;
+}
+
+function gulpShowPassFileInfo(outputLog) {
+  return new Transform({
+    transform(file, encoding, callback) {
+      if (typeof outputLog === 'function') {
+        console.log(outputLog(file));
+      } else {
+        console.log(
+          'file info'
+          + `\n  cwd: ${file.cwd}\n  base: ${file.base}`
+          + `\n  relative: ${file.relative}\n  path: ${file.path}`,
+        );
+      }
+      callback(null, file);
+    },
+    objectMode: true,
+  });
+}
+
+function testUtilsMediumTransform() {
+  console.log(
+    '預計輸出: pass 01 -> 02 -> file info'
+    + '\n---',
+  );
+
+  let buildTransform = function buildTransform(readable) {
+    return readable
+      .pipe(gulpShowPassFileInfo(() => 'pass 02'))
+    ;
+  };
+
+  let originDirPath = path.dirname(_filename);
+  gulpRun('copy', () =>
+    gulp.src('sampleSrc/path/**/main.txt', {
+      cwd: originDirPath,
+      allowEmpty: true,
+    })
+      .pipe(gulpShowPassFileInfo(() => 'pass 01'))
+      .pipe(mediumTransform(buildTransform))
+      .pipe(gulpShowPassFileInfo())
+      .pipe(gulp.dest(path.join(originDirPath, 'dist')))
+  );
+}
+
+function testGulpTask() {
+  console.log(
+    '預計輸出: pass 01 -> file info'
+    + '\n---',
+  );
+
+  let originDirPath = path.dirname(_filename);
+  gulpRun('copy', gulpTask({
+    src: 'sampleSrc/path/**/main.txt',
+    srcOption: {
+      cwd: originDirPath,
+      allowEmpty: true,
+    },
+    build(readable) {
+      return readable
+        .pipe(gulpShowPassFileInfo(() => 'pass 01'))
+        .pipe(gulpShowPassFileInfo())
+      ;
+    },
+    dest: path.join(originDirPath, 'dist'),
+  }));
+}
+
+function testGulpRun() {
+  console.log(
+    'base info:'
+    + `\n  process.cwd(): ${process.cwd()}`
+    + `\n  entryPagePath: ${_filename}`
+    + '\n'
+    + "\n模擬 `gulp copy` do `gulpRun('copy', function () {...})` 打印的訊息展示:"
+    + '\n---',
+  );
+
+  let originDirPath = path.dirname(_filename);
+  gulpRun('copy', () =>
+    gulp.src('sampleSrc/path/**/main.txt', {
+      cwd: originDirPath,
+      allowEmpty: true,
+    })
+      .pipe(gulpShowPassFileInfo())
+      .pipe(gulp.dest(path.join(originDirPath, 'dist')))
+  );
+}
+
+function testGulpDestSymlink() {
+  let originDirPath = path.dirname(_filename);
+  gulpRun('symlink', () =>
+    gulp.src('sampleSrc/path/**/*', {
+      cwd: originDirPath,
+      allowEmpty: true,
+    })
+      .pipe(gulpShowPassFileInfo())
+      .pipe(gulpDestSymlink(path.join(originDirPath, 'dist')))
+  );
+}
+
+function testGulpRollup() {
+  let originDirPath = path.dirname(_filename);
+  gulpRun('rollup', () =>
+    gulp.src(
+      changeGlobs(path.relative(process.cwd(), originDirPath), [
+        'sampleSrc/**/*.{js,cjs,mjs,es}',
+        '!**/MTProtoCore.js',
+      ]), {
+        cwd: process.cwd(),
+        base: originDirPath,
+        allowEmpty: true,
+        sourcemaps: true,
+      },
+    )
+      .pipe(gulpRollup({
+        resolveInput: (fileInfo) => path.relative(process.cwd(), fileInfo.path),
+        external: (id, fromPath) => {
+          console.log(`rollup get:\n  id: ${id}\n  fromPath: ${fromPath}`);
+          return false;
+        },
+        plugins: [
+          rollupBabel({
+            presets: [
+              // 涵蓋 99% 瀏覽器
+              ['@babel/preset-env', {
+                targets: 'cover 99%',
+                exclude: ['@babel/plugin-transform-typeof-symbol']
+              }],
+            ],
+          }),
+          rollupCommonjs(),
+        ],
+        output: {
+          format: 'es',
+          // sourcemap: true,
+        },
+      }))
+      .pipe(gulpShowPassFileInfo())
+      .pipe(gulp.dest(path.join(originDirPath, 'dist'), {sourcemaps: '.'}))
+  );
+}
+
