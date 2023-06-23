@@ -3,7 +3,14 @@
   "version": "0.0.0",
   "description": "About Gulp utilities.",
   "type": "module",
-  "main": "src/index.js",
+  "exports": {
+    ".": "./src/utils.js",
+    "./utils/": "./src/utils/",
+    "./gulpRun": "./src/gulpRun.js",
+    "./plugin-pug": "./src/plugin/pug/pug.js",
+    "./plugin-sass": "./src/plugin/sass/sass.js",
+    "./plugin-destSymlink": "./src/plugin/destSymlink/destSymlink.js"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/BwayCer/gulp-tool.node.git"
