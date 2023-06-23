@@ -2,7 +2,11 @@
 import path from 'path';
 import {Transform} from 'stream';
 
-import pug from 'pug';
+
+const PLUGIN_NAME = 'gulp-plugin-pug';
+const pug = (await import('pug').catch(err => {
+  throw new Error(`Cannot find package "pug@^3.0.2" imported from ${PLUGIN_NAME}`, {cause: err});
+})).default;
 
 
 /**
