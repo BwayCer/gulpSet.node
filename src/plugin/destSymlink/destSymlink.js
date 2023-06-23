@@ -19,7 +19,7 @@ import {fsMkdir, fsSymlink} from '../../utils/fsQuick.js';
 // 2. 此方法不會為非鏈結文件的資料夾建立鏈結文件。
 export default function gulpDestSymlink(directory) {
   async function createSymlink({cwd, relative, path:filePath}) {
-    let linkPath = path.join(cwd, directory, relative);
+    let linkPath = path.join(path.relative(cwd, directory), relative);
     let linkDirPath = path.join(linkPath, '..');
     let linkTarget = path.relative(linkDirPath, filePath);
     await fsMkdir(linkDirPath);
