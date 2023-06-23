@@ -38,7 +38,7 @@ const sass = (await import('sass').catch(err => {
  *   .pipe(gulp.dest(...))
  * ;
  */
-export function gulpSass(option) {
+export default function gulpSass(option) {
   return new Transform({
     transform(file, encoding, callback) {
       let cwdPath = file.cwd;

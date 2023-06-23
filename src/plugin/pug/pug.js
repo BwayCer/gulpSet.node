@@ -16,6 +16,7 @@ const pug = (await import('pug').catch(err => {
  * @param {Object} [option]
  * @return {stream.Transform}
  */
+export default gulpPug;
 export function gulpPug(option) {
   return _createGulpPugPipe(true, option);
 }
