@@ -29,13 +29,11 @@
     "README.md",
     "LICENSE"
   ],
-  "peerDependencies": {
-    "gulp": ">=4.0.2"
+  "dependencies": {
+    "gulp": "^4.0.2",
+    "plugin-error": "^2.0.1"
   },
   "devDependencies": {
-    "ansi-colors": "^4.1.1",
-    "gulp": "^4.0.2",
-    "pretty-hrtime": "^1.0.3",
     "pug": "^3.0.2",
     "sass": "^1.34.1"
   }
