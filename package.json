@@ -1,5 +1,5 @@
 {
-  "name": "@bwaycer/gulp-tool",
+  "name": "@bwaycer/gulp-set",
   "version": "0.0.0",
   "description": "About Gulp utilities.",
   "type": "module",
@@ -14,14 +14,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/BwayCer/gulp-tool.node.git"
+    "url": "git+https://github.com/BwayCer/gulpSet.node.git"
   },
   "author": "BwayCer <bwaycer@gmail.com> (https://bwaycer.github.io/about)",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/BwayCer/gulp-tool.node/issues"
+    "url": "https://github.com/BwayCer/gulpSet.node/issues"
   },
-  "homepage": "https://github.com/BwayCer/gulp-tool.node#readme",
+  "homepage": "https://github.com/BwayCer/gulpSet.node#readme",
   "keywords": [
     "gulp"
   ],
