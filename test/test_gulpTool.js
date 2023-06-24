@@ -5,6 +5,7 @@ import {Transform} from 'stream';
 import minimist from 'minimist';
 import gulp from 'gulp';
 import {babel as rollupBabel} from '@rollup/plugin-babel';
+import rollupNodeResolve from '@rollup/plugin-node-resolve';
 import rollupCommonjs from '@rollup/plugin-commonjs';
 
 import gulpRun from '../src/gulpRun.js';
@@ -171,6 +172,12 @@ function testGulpRollup() {
           return false;
         },
         plugins: [
+          rollupNodeResolve({
+            browser: true,
+            preferBuiltins: false,
+            // NOTE: 只需指名目錄名，會自動匹配上層目錄。
+            // moduleDirectories: moduleDirNames,
+          }),
           rollupBabel({
             presets: [
               // 涵蓋 99% 瀏覽器
