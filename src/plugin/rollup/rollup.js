@@ -132,11 +132,12 @@ function _parseConfig(config) {
     resolveOutputName: null,
     resolveOutputAmd: null,
   };
+  let outputOptionsList = [{}];
   if (config === null || typeof config !== 'object') {
     return {
       ...newConfig,
       inputOptions: {},
-      outputOptionsList: [{}],
+      outputOptionsList,
     };
   }
 
@@ -164,7 +165,6 @@ function _parseConfig(config) {
     Reflect.deleteProperty(inputOptions, 'watch');
   }
 
-  let outputOptionsList;
   if (inputOptions.hasOwnProperty('output')) {
     outputOptionsList = inputOptions.output;
     Reflect.deleteProperty(inputOptions, 'output');
