@@ -6,8 +6,8 @@
   "scripts": {
     "test/mediumTransform": "node ./test/test_gulpTool.js mediumTransform",
     "test/gulpTask": "node ./test/test_gulpTool.js gulpTask",
+    "test/gulpRollupSrc": "node ./test/test_gulpTool.js gulpRollupSrc",
     "test/gulpRun": "node ./test/test_gulpTool.js gulpRun",
-    "test/gulpRollup": "node ./test/test_gulpTool.js gulpRollup",
     "test/gulpDestSymlink": "node ./test/test_gulpTool.js gulpDestSymlink"
   },
   "exports": {

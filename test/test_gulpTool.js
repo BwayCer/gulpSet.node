@@ -9,9 +9,8 @@ import rollupNodeResolve from '@rollup/plugin-node-resolve';
 import rollupCommonjs from '@rollup/plugin-commonjs';
 
 import gulpRun from '../src/gulpRun.js';
-import {changeGlobs, mediumTransform, gulpTask} from '../src/utils.js';
+import {changeGlobs, mediumTransform, gulpTask, rollupSrc} from '../src/utils.js';
 import gulpDestSymlink from '../src/plugin/destSymlink/destSymlink.js';
-import gulpRollup from '../src/plugin/rollup/rollup.js';
 
 
 const _filename = import.meta.url.substring(7);
@@ -41,11 +40,11 @@ switch (cmdArgv._[0]) {
   case 'gulpTask':
     testGulpTask();
     break;
+  case 'gulpRollupSrc':
+    testGulpRollupSrc();
+    break;
   case 'gulpRun':
     testGulpRun();
-    break;
-  case 'gulpRollup':
-    testGulpRollup();
     break;
   case 'gulpDestSymlink':
     testGulpDestSymlink();
@@ -139,6 +138,61 @@ function testGulpRun() {
   );
 }
 
+function testGulpRollupSrc() {
+  let originDirPath = path.dirname(_filename);
+  gulpRun('rollupSrc', () =>
+    rollupSrc(
+      changeGlobs(path.relative(process.cwd(), originDirPath), [
+        'sampleSrc/**/*.{js,cjs,mjs,es}',
+        '!**/MTProtoCore.js',
+      ]),
+      {
+        gs: {
+          cwd: process.cwd(),
+          base: originDirPath,
+          allowEmpty: true,
+          sourcemaps: true,
+        },
+        input: {
+          external: (id, fromPath) => {
+            console.log(`rollup get:\n  id: ${id}\n  fromPath: ${fromPath}`);
+            return false;
+          },
+          plugins: [
+            rollupNodeResolve({
+              browser: true,
+              preferBuiltins: false,
+              // NOTE: 只需指名目錄名，會自動匹配上層目錄。
+              // moduleDirectories: moduleDirNames,
+            }),
+            rollupBabel({
+              presets: [
+                // 涵蓋 99% 瀏覽器
+                ['@babel/preset-env', {
+                  targets: 'cover 99%',
+                  exclude: ['@babel/plugin-transform-typeof-symbol']
+                }],
+              ],
+            }),
+            rollupCommonjs(),
+          ],
+        },
+        output: {
+          format: 'es',
+          sourcemap: true,
+        },
+        // resolveInput: (fileInfo) => path.relative(process.cwd(), fileInfo.path),
+        // resolveGulpFileName: true,
+      },
+    )
+      .pipe(gulpShowPassFileInfo())
+      .pipe(gulp.dest(
+        path.join(originDirPath, 'dist'),
+        {sourcemaps: '.'}
+      ))
+  );
+}
+
 function testGulpDestSymlink() {
   let originDirPath = path.dirname(_filename);
   gulpRun('symlink', () =>
@@ -148,54 +202,6 @@ function testGulpDestSymlink() {
     })
       .pipe(gulpShowPassFileInfo())
       .pipe(gulpDestSymlink(path.join(originDirPath, 'dist')))
-  );
-}
-
-function testGulpRollup() {
-  let originDirPath = path.dirname(_filename);
-  gulpRun('rollup', () =>
-    gulp.src(
-      changeGlobs(path.relative(process.cwd(), originDirPath), [
-        'sampleSrc/**/*.{js,cjs,mjs,es}',
-        '!**/MTProtoCore.js',
-      ]), {
-        cwd: process.cwd(),
-        base: originDirPath,
-        allowEmpty: true,
-        sourcemaps: true,
-      },
-    )
-      .pipe(gulpRollup({
-        resolveInput: (fileInfo) => path.relative(process.cwd(), fileInfo.path),
-        external: (id, fromPath) => {
-          console.log(`rollup get:\n  id: ${id}\n  fromPath: ${fromPath}`);
-          return false;
-        },
-        plugins: [
-          rollupNodeResolve({
-            browser: true,
-            preferBuiltins: false,
-            // NOTE: 只需指名目錄名，會自動匹配上層目錄。
-            // moduleDirectories: moduleDirNames,
-          }),
-          rollupBabel({
-            presets: [
-              // 涵蓋 99% 瀏覽器
-              ['@babel/preset-env', {
-                targets: 'cover 99%',
-                exclude: ['@babel/plugin-transform-typeof-symbol']
-              }],
-            ],
-          }),
-          rollupCommonjs(),
-        ],
-        output: {
-          format: 'es',
-          // sourcemap: true,
-        },
-      }))
-      .pipe(gulpShowPassFileInfo())
-      .pipe(gulp.dest(path.join(originDirPath, 'dist'), {sourcemaps: '.'}))
   );
 }
 
