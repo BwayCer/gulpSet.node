@@ -6,9 +6,7 @@
 // 2. 不會更改預期的 `process.cwd()` 路徑。
 
 
-import gulp from 'gulp';
-import colors from 'ansi-colors';
-import prettyTime from 'pretty-hrtime';
+import {gulp, colors, prettyTime} from './utils/gulpPkg.js';
 
 
 // https://github.com/gulpjs/gulp-cli/blob/2d8a320/lib/shared/exit.js

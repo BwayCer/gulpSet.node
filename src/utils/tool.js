@@ -2,7 +2,7 @@
 import path from 'path';
 import {Readable, Writable, Transform} from 'stream';
 
-import gulp from 'gulp';
+import {gulp} from './gulpPkg.js';
 
 
 /**
