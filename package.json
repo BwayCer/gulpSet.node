@@ -9,7 +9,6 @@
     "./gulpRun": "./src/gulpRun.js",
     "./plugin-pug": "./src/plugin/pug/pug.js",
     "./plugin-sass": "./src/plugin/sass/sass.js",
-    "./plugin-rollup": "./src/plugin/rollup/rollup.js",
     "./plugin-destSymlink": "./src/plugin/destSymlink/destSymlink.js"
   },
   "repository": {
@@ -23,7 +22,8 @@
   },
   "homepage": "https://github.com/BwayCer/gulpSet.node#readme",
   "keywords": [
-    "gulp"
+    "gulp",
+    "rollup"
   ],
   "files": [
     "src/",
