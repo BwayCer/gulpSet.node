@@ -6,7 +6,12 @@ import {Transform} from 'stream';
 // Vinyl 是 gulp 用於創建 `file` 塊的物件
 // https://gulpjs.com/docs/en/api/vinyl
 import Vinyl from 'vinyl';
-import sass from 'sass';
+
+
+const PLUGIN_NAME = 'gulp-plugin-sass';
+const sass = (await import('sass').catch(err => {
+  throw new Error(`Cannot find package "sass@^1.63.4" imported from ${PLUGIN_NAME}`, {cause: err});
+})).default;
 
 
 /**
@@ -33,7 +38,7 @@ import sass from 'sass';
  *   .pipe(gulp.dest(...))
  * ;
  */
-export function gulpSass(option) {
+export default function gulpSass(option) {
   return new Transform({
     transform(file, encoding, callback) {
       let cwdPath = file.cwd;

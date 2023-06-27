@@ -6,8 +6,8 @@
 // 2. 不會更改預期的 `process.cwd()` 路徑。
 
 
-import colors from 'ansi-colors';
 import gulp from 'gulp';
+import colors from 'ansi-colors';
 import prettyTime from 'pretty-hrtime';
 
 
