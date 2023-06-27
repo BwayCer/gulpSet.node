@@ -2,7 +2,7 @@
 import fs from 'fs';
 import fsPromises from 'fs/promises';
 import path from 'path';
-import {Writable} from 'stream';
+import {Transform} from 'stream';
 
 import {fsMkdir, fsSymlink} from '../../utils/fsQuick.js';
 
@@ -12,7 +12,7 @@ import {fsMkdir, fsSymlink} from '../../utils/fsQuick.js';
  *
  * @func gulpDestSymlink
  * @param {String} directory
- * @return {stream.Writable}
+ * @return {stream.Transform}
  */
 // NOTE:
 // 1. gulp.symlink 會遇到 Error: premature close 問題
@@ -20,8 +20,8 @@ import {fsMkdir, fsSymlink} from '../../utils/fsQuick.js';
 export default function gulpDestSymlink(directory) {
   let dirList = [];
 
-  return new Writable({
-    async write(chunk, encoding, callback) {
+  return new Transform({
+    async transform(chunk, encoding, callback) {
       let srcFileStat = await fsPromises.stat(chunk.path);
       if (srcFileStat.isDirectory()) {
         dirList.push({
@@ -34,7 +34,7 @@ export default function gulpDestSymlink(directory) {
       }
       callback(null);
     },
-    async final(callback) {
+    async flush(callback) {
       // NOTE:
       // `gulp.src()` 只有在目錄鏈結文件的子層明確匹配時
       // 才會如預期的查找其子目錄或文件。
