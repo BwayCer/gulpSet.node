@@ -107,21 +107,39 @@ export function rollupSrc(globs, options) {
         }
 
         // generate ouput according to (each of) given outputOptions
-        await Promise.all(originOutputOptionsList.map(outputOptions =>
-          _rollupGenerate(
+        await Promise.all(originOutputOptionsList.map(_outputOptions => {
+          // 處理 Transform 的 outputOptions
+          let outputOptions = _resolveOutputOptions(
             fileInfo,
-            bundle,
-            // 處理 Transform 的 outputOptions
-            _resolveOutputOptions(
-              fileInfo,
-              outputOptions,
-              resolveOutputName,
-              resolveOutputAmd,
-            ),
-          ).then(file => {
-            this.push(file);
-          }),
-        ));
+            _outputOptions,
+            resolveOutputName,
+            resolveOutputAmd,
+          );
+
+          let targetFile = _createVinyl(fileInfo, outputOptions);
+
+          // generate bundle according to given or autocompleted options
+          return bundle.generate(outputOptions).then(result => {
+            if (result.output.length > 1) {
+              console.log(
+                PLUGIN_NAME
+                + ' ignore output files beyond the second one from the "'
+                + fileInfo.path + '" path.'
+                + ` (${result.output.map(item => item.type).join(', ')})`,
+              );
+            }
+
+            let realOutputs = result.output.filter(item => item.type === 'chunk');
+
+            let output = realOutputs[0];
+            targetFile.contents = Buffer.from(output.code, encoding);
+            if (output.map !== null) {
+              targetFile.sourceMap = output.map;
+            }
+
+            this.push(targetFile);
+          });
+        }));
 
         // end stream
         callback(null);
@@ -246,14 +264,14 @@ function _resolveOutputOptions(
   return outputOptions;
 }
 
-function _rollupGenerate(fileInfo, bundle, outputOptions) {
+function _createVinyl(fileInfo, outputOptions) {
   let filePath = _isInjectNewFile(outputOptions)
     ? path.join(fileInfo.base, path.basename(outputOptions.file))
     : fileInfo.path
   ;
 
   // create new file and inject it into stream if needed (in case of multiple outputs)
-  let targetFile = new Vinyl({
+  return new Vinyl({
     cwd: fileInfo.cwd,
     base: fileInfo.base,
     path: filePath,
@@ -266,28 +284,6 @@ function _rollupGenerate(fileInfo, bundle, outputOptions) {
       isFIFO: () => false,
       isSocket: () => false,
     },
-  });
-
-  // generate bundle according to given or autocompleted options
-  return bundle.generate(outputOptions).then(result => {
-    if (result.output.length > 1) {
-      console.log(
-        PLUGIN_NAME
-        + ' ignore output files beyond the second one from the "'
-        + fileInfo.path + '" path.'
-        + ` (${result.output.map(item => item.type).join(', ')})`,
-      );
-    }
-
-    let realOutputs = result.output.filter(item => item.type === 'chunk');
-
-    let output = realOutputs[0];
-    targetFile.contents = Buffer.from(output.code);
-    if (output.map !== null) {
-      targetFile.sourceMap = output.map;
-    }
-
-    return targetFile;
   });
 }
 
