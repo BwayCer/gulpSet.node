@@ -17,44 +17,32 @@ const rollup = (await import('rollup').catch(err => {
 
 
   /**
-   * @typedef {Object} GulpStreamfilePathInfo
+   * @typedef {Object} GulpStreamFileInfo
    * @property {String} cwd
    * @property {String} base
    * @property {String} path
    */
   /**
-   * @typedef {Function} rollupResolveInput
+   * @typedef {Function} RollupBaseResolve
    * @param {GulpStreamFileInfo} filePathInfo
    * @return {String}
-   */
-  /**
-   * @typedef {Function} rollupResolveOutputName
-   * @param {GulpStreamFileInfo} filePathInfo
-   * @param {Object} outputOptions
-   * @return {String}
-   */
-  /**
-   * @typedef {Function} rollupResolveOutputAmd
-   * @param {GulpStreamFileInfo} filePathInfo
-   * @param {Object} outputOptions
-   * @return {Object}
    */
 /**
  * Rollup 讀取來源。
  *
  * @param {(String|Array.<String>)} globs
- * @param {Object} options
- * @param {Object} options.gs
+ * @param {?Object} options
+ * @param {?Object} options.gs
  * 見 [GitHub:gulpjs/glob-stream@8450d16/README.md#Options](https://github.com/gulpjs/glob-stream#Options)。
- * @param {Object} options.input
+ * @param {?Object} options.input
  * 見 [Rollup:inputoptions](https://rollupjs.org/javascript-api/#inputoptions-object)。
- * @param {(Object|Array.<Object>)} options.output
+ * @param {?(Object|Array.<Object>)} options.output
  * 見 [Rollup:inputoptions](https://rollupjs.org/javascript-api/#outputoptions-object)。
- * @param {rollupResolveInput} options.resolveInput
+ * @param {?RollupBaseResolve} options.resolveInput
  * 修改 [Rollup:input.input](https://rollupjs.org/configuration-options/#input) 值的單份文件路徑。
- * @param {rollupResolveOutputName} options.resolveOutputName
+ * @param {?RollupBaseResolve} options.resolveOutputName
  * 修改 [Rollup:output.name](https://rollupjs.org/configuration-options/#output-name) 的值。
- * @param {rollupResolveOutputAmd} options.resolveOutputAmd
+ * @param {?RollupBaseResolve} options.resolveOutputAmd
  * 修改 [Rollup:output.name](https://rollupjs.org/configuration-options/#output-amd) 的值。
  */
 export function rollupSrc(globs, options) {
