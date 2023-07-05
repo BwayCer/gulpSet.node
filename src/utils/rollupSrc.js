@@ -27,6 +27,13 @@ const rollup = (await import('rollup').catch(err => {
    * @param {GulpStreamFileInfo} filePathInfo
    * @return {String}
    */
+  /**
+   * @typedef {Function} ResolveGulpFileName
+   * @param {GulpStreamFileInfo} filePathInfo
+   * @param {Object} outputOptions
+   * @param {Object} outputChunk
+   * @return {String}
+   */
 /**
  * Rollup 讀取來源。
  *
@@ -44,6 +51,10 @@ const rollup = (await import('rollup').catch(err => {
  * 修改 [Rollup:output.name](https://rollupjs.org/configuration-options/#output-name) 的值。
  * @param {?RollupBaseResolve} options.resolveOutputAmd
  * 修改 [Rollup:output.name](https://rollupjs.org/configuration-options/#output-amd) 的值。
+ * @param {?RollupBaseResolve} options.resolveOutputFile
+ * 修改 [Rollup:output.file](https://rollupjs.org/configuration-options/#output-file) 值的單份文件路徑。
+ * @param {(ResolveGulpFileName|Boolean)} options.resolveGulpFileName
+ * 修改 Gulp 輸出的文件路徑。
  */
 export function rollupSrc(globs, options) {
   let {
@@ -51,6 +62,8 @@ export function rollupSrc(globs, options) {
     resolveInput,
     resolveOutputName,
     resolveOutputAmd,
+    resolveOutputFile,
+    resolveGulpFileName,
     inputOptions: originInputOptions,
     outputOptionsList: originOutputOptionsList,
   } = _parseConfig(options);
@@ -102,9 +115,8 @@ export function rollupSrc(globs, options) {
             _outputOptions,
             resolveOutputName,
             resolveOutputAmd,
+            resolveOutputFile,
           );
-
-          let targetFile = _createVinyl(fileInfo, outputOptions);
 
           // generate bundle according to given or autocompleted options
           return bundle.generate(outputOptions).then(result => {
@@ -112,14 +124,29 @@ export function rollupSrc(globs, options) {
               console.log(
                 PLUGIN_NAME
                 + ' ignore output files beyond the second one from the "'
-                + fileInfo.path + '" path.'
+                + file.path + '" path.'
                 + ` (${result.output.map(item => item.type).join(', ')})`,
               );
             }
 
-            let realOutputs = result.output.filter(item => item.type === 'chunk');
-
+            let realOutputs
+              = result.output.filter(item => item.type === 'chunk');
             let output = realOutputs[0];
+
+            // 如果熟悉 Gulp 及 Rollup，
+            // 可透過 resolveGulpFileName() 或 outputOptions.file
+            // 自行修改最後導出路徑，否則僅提供文件名稱的修改。
+            let filePath
+              = typeof resolveGulpFileName === 'function'
+                ? resolveGulpFileName(fileInfo, outputOptions, output)
+                : _isInjectNewFile(outputOptions)
+                  ? path.join(file.cwd, outputOptions.file)
+                  : resolveGulpFileName === true
+                    ? path.join(path.dirname(file.path), output.fileName)
+                    : file.path
+            ;
+            let targetFile = _createVinyl(fileInfo, filePath);
+
             targetFile.contents = Buffer.from(output.code, encoding);
             if (output.map !== null) {
               targetFile.sourceMap = output.map;
@@ -155,6 +182,8 @@ function _parseConfig(config) {
     resolveInput: null,
     resolveOutputName: null,
     resolveOutputAmd: null,
+    resolveOutputFile: null,
+    resolveGulpFileName: null,
   };
   let inputOptions = {};
   let outputOptionsList = [{}];
@@ -171,6 +200,8 @@ function _parseConfig(config) {
     'resolveInput',
     'resolveOutputName',
     'resolveOutputAmd',
+    'resolveOutputFile',
+    'resolveGulpFileName',
   ].forEach(item => {
     if (config.hasOwnProperty(item)) {
       newConfig[item] = config[item];
@@ -232,6 +263,7 @@ function _resolveOutputOptions(
   outputOptions,
   resolveOutputName,
   resolveOutputAmd,
+  resolveOutputFile,
 ) {
   outputOptions = Object.assign({}, outputOptions);
 
@@ -249,15 +281,14 @@ function _resolveOutputOptions(
     outputOptions.amd = {id: outputOptions.name};
   }
 
+  if (typeof resolveOutputFile === 'function') {
+    outputOptions.file = resolveOutputFile(fileInfo);
+  }
+
   return outputOptions;
 }
 
-function _createVinyl(fileInfo, outputOptions) {
-  let filePath = _isInjectNewFile(outputOptions)
-    ? path.join(fileInfo.base, path.basename(outputOptions.file))
-    : fileInfo.path
-  ;
-
+function _createVinyl(fileInfo, filePath) {
   // create new file and inject it into stream if needed (in case of multiple outputs)
   return new Vinyl({
     cwd: fileInfo.cwd,
