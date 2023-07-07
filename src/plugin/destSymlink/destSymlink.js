@@ -26,11 +26,13 @@ export default function gulpDestSymlink(directory, options) {
       let {cwd, base, path: filePath} = chunk;
       let srcFileStat = await fsPromises.stat(filePath);
       if (srcFileStat.isDirectory()) {
-        dirList.push({cwd, base, path: filePath});
+        dirList.push(chunk);
       } else {
         let linkPath = _resolveLinkPath(directory, cwd, base, filePath);
         if (isForce || !fs.existsSync(linkPath)) {
           await createSymlink(linkPath, filePath);
+          callback(null, chunk);
+          return;
         }
       }
       callback(null);
@@ -47,7 +49,8 @@ export default function gulpDestSymlink(directory, options) {
       // 2. 剩餘的目錄路徑，再過濾掉建立目的地已存在文件的路徑。(避免覆蓋已處理好的文件)
       // 3. 剩餘的目錄路徑，挑出原目錄為鏈結文件的建立鏈結文件。
       for (let idx = 0, len = dirList.length; idx < len; idx++) {
-        let {cwd, base, path: filePath} = dirList[idx];
+        let chunk = dirList[idx];
+        let {cwd, base, path: filePath} = chunk;
         let linkPath = _resolveLinkPath(directory, cwd, base, filePath);
         if (fs.existsSync(linkPath)) {
           continue;
@@ -55,6 +58,7 @@ export default function gulpDestSymlink(directory, options) {
         let srcFileLstat = await fsPromises.lstat(filePath);
         if (srcFileLstat.isSymbolicLink()) {
           await createSymlink(linkPath, filePath);
+          this.push(chunk);
         }
       }
       dirList.length = 0;
