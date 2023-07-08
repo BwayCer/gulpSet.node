@@ -39,10 +39,10 @@ function _changeGlob(prefix, glob) {
 
 
 /**
- * 處裡群組包轉換器：
+ * 擴展管道：
  * 可以在 `gulp.pipe()` 中丟入一組處裡包，因此提高模組化的便利性。
  *
- * @func mediumTransform
+ * @func insertPipe
  * @param {Function} buildTransform
  * @return {stream.Transform}
  *
@@ -59,11 +59,11 @@ function _changeGlob(prefix, glob) {
  * }
  * gulp.src(...)
  *   .pipe(transform01())
- *   .pipe(mediumTransform(buildTransform))
+ *   .pipe(insertPipe(buildTransform))
  *   .pipe(transform03())
  */
 // NOTE: 如果只用 `Transform` 則只會觸發最後一個 `pipe()`。
-export function mediumTransform(buildTransform) {
+export function insertPipe(buildTransform) {
   let readable = new Readable({
     // TODO: 從此處著手處理串流過載問題？
     read(/* size */) {},
@@ -117,7 +117,7 @@ export function mediumTransform(buildTransform) {
  * @example
  * function doTaskA() {
  *   return gulp.src(<globs>, <srcOption>)
- *     .pipe(mediumTransform(<buildTransform>))
+ *     .pipe(insertPipe(<buildTransform>))
  *     .pipe(gulp.dest(<dest>, <destOption>))
  *   ;
  * }
@@ -145,7 +145,7 @@ export function gulpTask(info) {
       : info.src
     ;
     let streamTask = gulp.src(globs, info.srcOption)
-      .pipe(mediumTransform(info.build))
+      .pipe(insertPipe(info.build))
     ;
     if ('dest' in info) {
       streamTask.pipe(gulp.dest(info.dest, info.destOption));
