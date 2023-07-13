@@ -2,8 +2,6 @@
 import path from 'path';
 import {Readable, Writable, Transform} from 'stream';
 
-import gulp from 'gulp';
-
 
 /**
  * 改變選取路徑：
@@ -39,10 +37,10 @@ function _changeGlob(prefix, glob) {
 
 
 /**
- * 處裡群組包轉換器：
+ * 擴展管道：
  * 可以在 `gulp.pipe()` 中丟入一組處裡包，因此提高模組化的便利性。
  *
- * @func mediumTransform
+ * @func insertPipe
  * @param {Function} buildTransform
  * @return {stream.Transform}
  *
@@ -59,11 +57,11 @@ function _changeGlob(prefix, glob) {
  * }
  * gulp.src(...)
  *   .pipe(transform01())
- *   .pipe(mediumTransform(buildTransform))
+ *   .pipe(insertPipe(buildTransform))
  *   .pipe(transform03())
  */
 // NOTE: 如果只用 `Transform` 則只會觸發最後一個 `pipe()`。
-export function mediumTransform(buildTransform) {
+export function insertPipe(buildTransform) {
   let readable = new Readable({
     // TODO: 從此處著手處理串流過載問題？
     read(/* size */) {},
@@ -95,68 +93,5 @@ export function mediumTransform(buildTransform) {
     }))
   ;
   return transform;
-}
-
-
-/**
- * 創建任務：
- * 以彈性的物件對象取代函式方式來建立任務。
- *
- * @func gulpTask
- * @param {Object} info
- * @param {?String} info.name
- * @param {?String} info.srcBase
- * @param {(String|Array)} info.src
- * @param {?Object} info.srcOption
- * @param {Function} info.build
- * @param {?(string|function)} info.dest
- * @param {?Object} info.destOption
- * @param {?stream.Writable} info.writable
- * @return {Function}
- *
- * @example
- * function doTaskA() {
- *   return gulp.src(<globs>, <srcOption>)
- *     .pipe(mediumTransform(<buildTransform>))
- *     .pipe(gulp.dest(<dest>, <destOption>))
- *   ;
- * }
- * // same as
- * gulpTask({
- *   name: 'doTaskA',
- *   src: <globs>,
- *   srcOption: <srcOption>,
- *   build: <buildTransform>,
- *   dest: <dest>,
- *   destOption: <destOption>,
- * });
- */
-// NOTE: 如果只用 `Transform` 則只會觸發最後一個 `pipe()`。
-export function gulpTask(info) {
-  ['src', 'build'].forEach(member => {
-    if (member in info) {
-      return;
-    }
-    throw new Error(`Missing required property "${member}" in the "info" object.`);
-  });
-  let fn = () => {
-    let globs = 'srcBase' in info
-      ? changeGlobs(info.srcBase, info.src)
-      : info.src
-    ;
-    let streamTask = gulp.src(globs, info.srcOption)
-      .pipe(mediumTransform(info.build))
-    ;
-    if ('dest' in info) {
-      streamTask.pipe(gulp.dest(info.dest, info.destOption));
-    } else if ('writable' in info) {
-      streamTask.pipe(info.writable);
-    }
-    return streamTask;
-  };
-  if (typeof info.name === 'string') {
-    Reflect.defineProperty(fn, 'name', {value: info.name});
-  }
-  return fn;
 }
 
