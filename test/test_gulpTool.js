@@ -9,7 +9,8 @@ import rollupNodeResolve from '@rollup/plugin-node-resolve';
 import rollupCommonjs from '@rollup/plugin-commonjs';
 
 import gulpRun from '../src/gulpRun.js';
-import {changeGlobs, mediumTransform, gulpTask, rollupSrc} from '../src/utils.js';
+import gulpTask from '../src/gulpTask.js';
+import {changeGlobs, insertPipe, rollupSrc} from '../src/utils.js';
 import gulpDestSymlink from '../src/plugin/destSymlink/destSymlink.js';
 
 
@@ -34,7 +35,7 @@ cmdArgv.to = cmdArgv.to ?? cmdArgv.t ?? 'dist';
 
 
 switch (cmdArgv._[0]) {
-  case 'mediumTransform':
+  case 'insertPipe':
     testUtilsMediumTransform();
     break;
   case 'gulpTask':
@@ -88,7 +89,7 @@ function testUtilsMediumTransform() {
       allowEmpty: true,
     })
       .pipe(gulpShowPassFileInfo(() => 'pass 01'))
-      .pipe(mediumTransform(buildTransform))
+      .pipe(insertPipe(buildTransform))
       .pipe(gulpShowPassFileInfo())
       .pipe(gulp.dest(path.join(originDirPath, 'dist')))
   );
