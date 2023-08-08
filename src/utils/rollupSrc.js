@@ -87,9 +87,13 @@ export function rollupSrc(globs, options) {
 
       // 處理 Stream 的 inputOptions
       let inputOptions = Object.assign({}, originInputOptions);
+      // NOTE:
+      // 可以使用絕對路徑或相對路徑，相對路徑基於 process.cwd()。
+      // 考慮調整 gulp cwd 選項後 file.cwd != process.cwd() 的情況，
+      // 在此處使用絕對路徑表示。
       inputOptions.input = typeof resolveInput === 'function'
         ? resolveInput(fileInfo)
-        : path.relative(file.cwd, file.path)
+        : file.path
       ;
 
       // caching is enabled by default because of the nature of gulp and the watching/recompilatin
