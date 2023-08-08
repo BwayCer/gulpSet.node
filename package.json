@@ -1,6 +1,6 @@
 {
   "name": "@bwaycer/gulp-set",
-  "version": "0.2.0",
+  "version": "0.2.0-beta.1",
   "description": "About Gulp utilities.",
   "type": "module",
   "exports": {
